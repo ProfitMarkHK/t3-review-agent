@@ -43,6 +43,15 @@ const scopeKeys = new Set(["scope", "reason"]);
 const severities = new Set<string>(["blocker", "important", "minor"]);
 const confidences = new Set<string>(["high", "medium"]);
 
+const maxFindings = 100;
+const maxIncompleteScopes = 10;
+const maxTitleLength = 200;
+const maxPathLength = 500;
+const maxEvidenceLength = 4000;
+const maxSuggestedFixLength = 2000;
+const maxScopeLength = 100;
+const maxReasonLength = 500;
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -108,15 +117,19 @@ function parseFinding(value: unknown, path: string, errors: string[]): Finding |
   }
 
   let title: string | null = null;
-  if (isNonEmptyString(value.title)) {
-    title = value.title;
-  } else {
+  if (!isNonEmptyString(value.title)) {
     errors.push(`${path}.title must be a non-empty string`);
+  } else if (value.title.length > maxTitleLength) {
+    errors.push(`${path}.title must be at most ${maxTitleLength} characters`);
+  } else {
+    title = value.title;
   }
 
   let findingPath: string | null = null;
   if (!isNonEmptyString(value.path)) {
     errors.push(`${path}.path must be a non-empty string`);
+  } else if (value.path.length > maxPathLength) {
+    errors.push(`${path}.path must be at most ${maxPathLength} characters`);
   } else {
     const problem = relativePathProblem(value.path);
     if (problem === null) {
@@ -145,17 +158,21 @@ function parseFinding(value: unknown, path: string, errors: string[]): Finding |
   }
 
   let evidence: string | null = null;
-  if (isNonEmptyString(value.evidence)) {
-    evidence = value.evidence;
-  } else {
+  if (!isNonEmptyString(value.evidence)) {
     errors.push(`${path}.evidence must be a non-empty string`);
+  } else if (value.evidence.length > maxEvidenceLength) {
+    errors.push(`${path}.evidence must be at most ${maxEvidenceLength} characters`);
+  } else {
+    evidence = value.evidence;
   }
 
   let suggestedFix: string | null = null;
-  if (isNonEmptyString(value.suggestedFix)) {
-    suggestedFix = value.suggestedFix;
-  } else {
+  if (!isNonEmptyString(value.suggestedFix)) {
     errors.push(`${path}.suggestedFix must be a non-empty string`);
+  } else if (value.suggestedFix.length > maxSuggestedFixLength) {
+    errors.push(`${path}.suggestedFix must be at most ${maxSuggestedFixLength} characters`);
+  } else {
+    suggestedFix = value.suggestedFix;
   }
 
   if (
@@ -200,17 +217,21 @@ function parseIncompleteScope(
   checkUnknownKeys(value, scopeKeys, path, errors);
 
   let scope: string | null = null;
-  if (isNonEmptyString(value.scope)) {
-    scope = value.scope;
-  } else {
+  if (!isNonEmptyString(value.scope)) {
     errors.push(`${path}.scope must be a non-empty string`);
+  } else if (value.scope.length > maxScopeLength) {
+    errors.push(`${path}.scope must be at most ${maxScopeLength} characters`);
+  } else {
+    scope = value.scope;
   }
 
   let reason: string | null = null;
-  if (isNonEmptyString(value.reason)) {
-    reason = value.reason;
-  } else {
+  if (!isNonEmptyString(value.reason)) {
     errors.push(`${path}.reason must be a non-empty string`);
+  } else if (value.reason.length > maxReasonLength) {
+    errors.push(`${path}.reason must be at most ${maxReasonLength} characters`);
+  } else {
+    reason = value.reason;
   }
 
   if (scope === null || reason === null) {
@@ -236,7 +257,10 @@ export function parseFindingsFile(input: unknown): ParseFindingsResult {
   if (!Array.isArray(input.findings)) {
     errors.push("findings must be an array");
   } else {
-    for (const [index, entry] of input.findings.entries()) {
+    if (input.findings.length > maxFindings) {
+      errors.push(`findings must contain at most ${maxFindings} entries`);
+    }
+    for (const [index, entry] of input.findings.slice(0, maxFindings).entries()) {
       const finding = parseFinding(entry, `findings[${index}]`, errors);
       if (finding !== null) {
         findings.push(finding);
@@ -248,7 +272,10 @@ export function parseFindingsFile(input: unknown): ParseFindingsResult {
   if (!Array.isArray(input.incompleteScopes)) {
     errors.push("incompleteScopes must be an array");
   } else {
-    for (const [index, entry] of input.incompleteScopes.entries()) {
+    if (input.incompleteScopes.length > maxIncompleteScopes) {
+      errors.push(`incompleteScopes must contain at most ${maxIncompleteScopes} entries`);
+    }
+    for (const [index, entry] of input.incompleteScopes.slice(0, maxIncompleteScopes).entries()) {
       const incompleteScope = parseIncompleteScope(entry, `incompleteScopes[${index}]`, errors);
       if (incompleteScope !== null) {
         incompleteScopes.push(incompleteScope);

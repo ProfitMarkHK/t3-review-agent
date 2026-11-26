@@ -209,13 +209,20 @@ async function run(): Promise<number> {
     return 2;
   }
 
-  const body = renderReviewBody({
+  const rendered = renderReviewBody({
     sha: options.sha,
     owner: options.owner,
     repo: options.repo,
     findings: findings.value.findings,
     incompleteScopes: findings.value.incompleteScopes,
   });
+
+  if (!rendered.ok) {
+    console.error(rendered.error);
+    return 1;
+  }
+
+  const body = rendered.body;
 
   if (options.dryRun) {
     console.log(body);

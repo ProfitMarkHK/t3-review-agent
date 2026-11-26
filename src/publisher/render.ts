@@ -178,10 +178,14 @@ function renderBody(input: ReviewBodyInput, total: number, omitted: number): str
   return lines.join("\n");
 }
 
-export function renderReviewBody(input: ReviewBodyInput): string {
+export type RenderReviewBodyResult =
+  | { ok: true; body: string }
+  | { ok: false; error: string };
+
+export function renderReviewBody(input: ReviewBodyInput): RenderReviewBodyResult {
   const full = renderBody(input, input.findings.length, 0);
   if (full.length <= maxBodyLength) {
-    return full;
+    return { ok: true, body: full };
   }
 
   const sorted = sortFindings(input.findings);
@@ -214,12 +218,12 @@ export function renderReviewBody(input: ReviewBodyInput): string {
       removed.size,
     );
     if (body.length <= maxBodyLength) {
-      return body;
+      return { ok: true, body };
     }
   }
 
   const remaining = input.findings.filter((item) => !removed.has(item));
-  return renderBody(
+  const body = renderBody(
     {
       sha: input.sha,
       owner: input.owner,
@@ -230,4 +234,13 @@ export function renderReviewBody(input: ReviewBodyInput): string {
     input.findings.length,
     removed.size,
   );
+
+  if (body.length <= maxBodyLength) {
+    return { ok: true, body };
+  }
+
+  return {
+    ok: false,
+    error: `review body is ${body.length} characters, above the ${maxBodyLength}-character limit even after omitting all findings`,
+  };
 }
