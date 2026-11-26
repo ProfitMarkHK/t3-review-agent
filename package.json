@@ -1,0 +1,12 @@
+{
+  "name": "t3-review-agent",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.5",
+    "typescript": "^5.9.0"
+  }
+}
