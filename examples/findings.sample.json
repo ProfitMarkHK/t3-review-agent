@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "findings": [
+    {
+      "severity": "blocker",
+      "confidence": "high",
+      "title": "Unvalidated input reaches the database query",
+      "path": "src/api/search.ts",
+      "line": 42,
+      "endLine": 47,
+      "evidence": "The handler passes `req.query.q` straight into `db.query`, so a caller controls the SQL text.",
+      "suggestedFix": "Bind the value as a parameter and reject unsupported characters."
+    },
+    {
+      "severity": "important",
+      "confidence": "medium",
+      "title": "Missing test for the new error path",
+      "path": "src/api/search.ts",
+      "line": 61,
+      "evidence": "The new branch returns a 400 response but no test covers it.",
+      "suggestedFix": "Add a test that sends an invalid query and asserts the 400 response."
+    },
+    {
+      "severity": "minor",
+      "confidence": "high",
+      "title": "Redundant null check",
+      "path": "src/util/strings.ts",
+      "line": 8,
+      "evidence": "`value` is already narrowed to a string above, so the check always passes.",
+      "suggestedFix": "Remove the check."
+    }
+  ],
+  "incompleteScopes": [
+    { "scope": "security & input boundaries", "reason": "reviewer timed out" }
+  ]
+}

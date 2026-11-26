@@ -27,3 +27,37 @@ publisher that posts one Published Review, and renders a Findings Report in the 
 ## Status
 
 Design settled. Nothing implemented yet.
+
+## Publishing a review by hand
+
+Run the publisher from the repository root:
+
+```sh
+bun run publish-review --findings examples/findings.sample.json --repo owner/name --pr 42 --sha 0123456789abcdef0123456789abcdef01234567
+```
+
+| Flag | Meaning |
+| --- | --- |
+| `--findings <file>` | Findings file to publish. `examples/findings.sample.json` shows the format. |
+| `--repo <owner/name>` | Repository that owns the pull request. |
+| `--pr <number>` | Pull request number. |
+| `--sha <sha>` | Full 40-character lowercase head SHA the findings were produced for. |
+| `--token-file <path>` | GitHub token file. |
+| `--dry-run` | Print the rendered review body to stdout without reading the token or calling GitHub. |
+
+The token is read from `--token-file` when given. Otherwise it is read from
+`%LOCALAPPDATA%\t3-review-agent\publisher.token`, then
+`$XDG_DATA_HOME/t3-review-agent/publisher.token`, then
+`~/.local/share/t3-review-agent/publisher.token`. Surrounding whitespace is ignored; a missing or
+empty token is an error.
+
+Without `--dry-run`, the publisher writes exactly one JSON line to stdout:
+
+```json
+{"outcome":"posted","reviewId":123,"url":"https://github.com/owner/name/pull/42#pullrequestreview-123"}
+{"outcome":"skipped","reason":"already-reviewed"}
+{"outcome":"skipped","reason":"superseded"}
+```
+
+Exit codes: `0` when a review was posted or skipped, `2` for invalid arguments or an invalid
+findings file, and `1` for any other failure.
