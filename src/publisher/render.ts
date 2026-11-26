@@ -25,19 +25,17 @@ export function isAlreadyReviewed(bodies: string[], sha: string): boolean {
   return bodies.some((body) => body.trimEnd().endsWith(marker));
 }
 
-function escapeUntrusted(value: string): string {
+function escapeBlockText(value: string): string {
   return value
     .replace(/<\/details>/gi, "&lt;/details&gt;")
     .replace(/<!--/g, "&lt;!--")
     .replace(/-->/g, "--&gt;");
 }
 
-function collapseNewlines(value: string): string {
-  return value.replace(/\r\n|\r|\n/g, " ");
-}
-
 function inlineText(value: string): string {
-  return collapseNewlines(escapeUntrusted(value));
+  return value
+    .replace(/\r\n|\r|\n/g, " ")
+    .replace(/[\u0021-\u002F\u003A-\u0040\u005B-\u0060\u007B-\u007E]/g, (char) => `\\${char}`);
 }
 
 function encodePath(path: string): string {
@@ -64,9 +62,9 @@ function locationLine(finding: Finding, input: ReviewBodyInput): string {
   const displayPath = inlineText(finding.path);
   const url = `https://github.com/${input.owner}/${input.repo}/blob/${input.sha}/${encodedPath}`;
   if (finding.endLine === undefined) {
-    return `[\`${displayPath}:${finding.line}\`](${url}#L${finding.line})  _(confidence: ${finding.confidence})_`;
+    return `[${displayPath}:${finding.line}](${url}#L${finding.line})  _(confidence: ${finding.confidence})_`;
   }
-  return `[\`${displayPath}:${finding.line}-${finding.endLine}\`](${url}#L${finding.line}-L${finding.endLine})  _(confidence: ${finding.confidence})_`;
+  return `[${displayPath}:${finding.line}-${finding.endLine}](${url}#L${finding.line}-L${finding.endLine})  _(confidence: ${finding.confidence})_`;
 }
 
 function renderFinding(finding: Finding, input: ReviewBodyInput): string {
@@ -74,9 +72,9 @@ function renderFinding(finding: Finding, input: ReviewBodyInput): string {
     `#### ${inlineText(finding.title)}`,
     locationLine(finding, input),
     "",
-    `**Evidence:** ${escapeUntrusted(finding.evidence)}`,
+    `**Evidence:** ${escapeBlockText(finding.evidence)}`,
     "",
-    `**Suggested fix:** ${escapeUntrusted(finding.suggestedFix)}`,
+    `**Suggested fix:** ${escapeBlockText(finding.suggestedFix)}`,
   ].join("\n");
 }
 
