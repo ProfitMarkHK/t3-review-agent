@@ -1,24 +1,29 @@
 # t3-review-agent
 
 A durable pull-request review agent, orchestrated by **T3 Code** on an always-on dev box and
-triggered by **GitHub webhooks**. Reviews run as inspectable T3 threads: a coordinator creates a
-worktree at the PR head, fans out narrow-scope reviewers with `delegate_task`, verifies and
-dedupes their findings, posts one consolidated GitHub review, and renders a visual report locally.
+triggered by **GitHub webhooks**. Each Review Run is an inspectable T3 thread: a Coordinator sends
+narrow-scope Reviewers into worktrees at the PR head, verifies their Findings, hands them to a narrow
+publisher that posts one Published Review, and renders a Findings Report in the thread.
 
-Start here: [FOUNDING.md](FOUNDING.md) — the founding design, its reasoning, and the rejected
-alternatives.
+- [FOUNDING.md](FOUNDING.md) — the founding design, its reasoning and the rejected alternatives.
+  Kept unchanged as the starting point that later changes are measured against.
+- [docs/v1-plan.md](docs/v1-plan.md) — the settled v1 build plan, including where it departs from
+  the founding design.
+- [GLOSSARY.md](GLOSSARY.md) — the project's vocabulary.
 
 ## Shape of v1
 
 | Piece | Choice |
 | --- | --- |
-| Trigger | GitHub `pull_request` webhook → T3 webhook scheduled task (HMAC, filter, GUID dedupe, repo+PR+SHA coalesce) |
-| Host | T3 Code on the always-on dev box (Cloudflare DO only as a relay if it can be down) |
-| Isolation | One worktree per PR head; one thread per run |
-| Reviewers | Parallel `delegate_task`: correctness/architecture, security/input boundaries, tests/migrations/regression |
-| Output | One consolidated GitHub review + local `html_render` findings report |
-| Safety | Payload treated as data; head SHA as idempotency key; narrow publisher; read-only reviewers |
+| Target | `ProfitMarkHK/MindbodyMCP`; fork and draft PRs skipped |
+| Trigger | Repo webhook → one T3 webhook task in this project (HMAC, filters, delivery-ID replay dedupe, repo + PR coalesce) |
+| Host | T3 Code on the always-on dev box; one new thread per Review Run |
+| Reviewers | Two, via `delegate_task` into the target project's worktrees: correctness & architecture, security & input boundaries |
+| Findings | Only problems the diff introduces; Blocker / Important / Minor; verified by the Coordinator |
+| Publisher | PowerShell + `gh api`, bot user with a fine-grained PAT; `COMMENT` reviews only |
+| Idempotency | Hidden head-SHA marker in each Published Review; skip if the PR head has moved |
+| Output | One Published Review on GitHub + a Findings Report rendered in the thread |
 
 ## Status
 
-Design captured. Nothing implemented yet.
+Design settled. Nothing implemented yet.
