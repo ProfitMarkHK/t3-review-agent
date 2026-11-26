@@ -20,11 +20,6 @@ export function reviewMarker(sha: string): string {
   return `<!-- t3-review-agent sha=${sha} -->`;
 }
 
-export function isAlreadyReviewed(bodies: string[], sha: string): boolean {
-  const marker = reviewMarker(sha);
-  return bodies.some((body) => body.trimEnd().endsWith(marker));
-}
-
 function longestBacktickRun(value: string): number {
   let longest = 0;
   let current = 0;

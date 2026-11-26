@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { decideReview } from "./decide";
+import { decideReview, isAlreadyReviewed } from "./decide";
 import { parseFindingsFile } from "./findings";
 import { getPullHeadSha, listReviewBodies, postReview } from "./github";
 import { renderReviewBody } from "./render";
@@ -238,6 +238,12 @@ async function run(): Promise<number> {
   };
 
   const existingReviewBodies = await listReviewBodies(target);
+
+  if (isAlreadyReviewed(existingReviewBodies, options.sha)) {
+    console.log(JSON.stringify({ outcome: "skipped", reason: "already-reviewed" }));
+    return 0;
+  }
+
   const currentHeadSha = await getPullHeadSha(target);
   const decision = decideReview({
     headSha: options.sha,
