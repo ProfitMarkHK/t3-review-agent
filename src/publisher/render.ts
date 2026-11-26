@@ -25,11 +25,26 @@ export function isAlreadyReviewed(bodies: string[], sha: string): boolean {
   return bodies.some((body) => body.trimEnd().endsWith(marker));
 }
 
-function escapeBlockText(value: string): string {
-  return value
-    .replace(/<\/details>/gi, "&lt;/details&gt;")
-    .replace(/<!--/g, "&lt;!--")
-    .replace(/-->/g, "--&gt;");
+function longestBacktickRun(value: string): number {
+  let longest = 0;
+  let current = 0;
+  for (const char of value) {
+    if (char === "`") {
+      current += 1;
+      if (current > longest) {
+        longest = current;
+      }
+    } else {
+      current = 0;
+    }
+  }
+  return longest;
+}
+
+function fencedText(label: string, value: string): string[] {
+  const normalized = value.replace(/\r\n|\r/g, "\n");
+  const fence = "`".repeat(Math.max(3, longestBacktickRun(normalized) + 1));
+  return [`**${label}:**`, "", fence, normalized, fence];
 }
 
 function inlineText(value: string): string {
@@ -78,9 +93,9 @@ function renderFinding(finding: Finding, input: ReviewBodyInput): string {
     `#### ${inlineText(finding.title)}`,
     locationLine(finding, input),
     "",
-    `**Evidence:** ${escapeBlockText(finding.evidence)}`,
+    ...fencedText("Evidence", finding.evidence),
     "",
-    `**Suggested fix:** ${escapeBlockText(finding.suggestedFix)}`,
+    ...fencedText("Suggested fix", finding.suggestedFix),
   ].join("\n");
 }
 
