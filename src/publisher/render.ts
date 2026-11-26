@@ -38,11 +38,17 @@ function inlineText(value: string): string {
     .replace(/[\u0021-\u002F\u003A-\u0040\u005B-\u0060\u007B-\u007E]/g, (char) => `\\${char}`);
 }
 
+function encodeSegment(segment: string): string {
+  return encodeURIComponent(segment)
+    .replace(/\(/g, "%28")
+    .replace(/\)/g, "%29")
+    .replace(/'/g, "%27")
+    .replace(/!/g, "%21")
+    .replace(/\*/g, "%2A");
+}
+
 function encodePath(path: string): string {
-  return path
-    .split("/")
-    .map((segment) => encodeURIComponent(segment))
-    .join("/");
+  return path.split("/").map(encodeSegment).join("/");
 }
 
 function sortFindings(findings: Finding[]): Finding[] {
