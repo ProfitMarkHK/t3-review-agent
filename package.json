@@ -4,7 +4,9 @@
   "type": "module",
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "publish-review": "bun src/publisher/cli.ts"
+    "publish-review": "bun src/publisher/cli.ts",
+    "reviewer-task": "bun src/review/cli.ts",
+    "findings-report": "bun src/report/cli.ts"
   },
   "devDependencies": {
     "@types/bun": "^1.4.5",

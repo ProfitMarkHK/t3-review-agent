@@ -24,6 +24,30 @@ publisher that posts one Published Review, and renders a Findings Report in the 
 | Idempotency | Hidden head-SHA marker in each Published Review; skip if the PR head has moved |
 | Output | One Published Review on GitHub + a Findings Report rendered in the thread |
 
+## Running the review pipeline
+
+Render one Reviewer's task text:
+
+```bash
+bun run reviewer-task --scope correctness --repo owner/name --pr 42 --head <40-hex> --base <40-hex>
+```
+
+It prints the task to stdout. `--scope` must be a known scope id; `correctness` is the only one for
+now.
+
+Render a Findings Report:
+
+```bash
+bun run findings-report --repo owner/name --pr 42 --sha <40-hex> --outcome posted --findings findings.json --review-url https://github.com/owner/name/pull/42#pullrequestreview-123 --out report.html
+```
+
+`--outcome` is one of `posted`, `already-reviewed`, `superseded`, `would-post` or `failed`.
+`--findings` is optional and renders an empty Findings list when omitted. `--review-url` must be a
+GitHub URL and is used with `posted`. `--note` adds a short explanatory line. The report is written
+to `--out` and its absolute path is printed.
+
+Both commands exit 2 for invalid arguments.
+
 ## Status
 
 Publisher implemented; the review pipeline is in progress.
