@@ -47,3 +47,44 @@ orchestrating agent, because delegates cannot be relied on to have them.
 merged into `main` once the review findings are fixed and the ticket's acceptance criteria are met
 or explicitly deferred to an issue. Tickets close when their branch lands on `main`.
 **Why:** Direct instruction to commit as we go and merge when done-done.
+
+## D7 — How T3 webhook tasks actually behave (2026-11-26, from #1)
+
+Measured with a throwaway webhook task in this project and hand-signed requests:
+
+- **Template syntax:** `{{headers.<header-name>}}` and `{{body.<dot.path>}}`, mixed freely with
+  literal text, for example `{{body.repository.full_name}}#{{body.pull_request.number}}`. A path
+  that does not exist renders as an empty string.
+- **Replay key:** `{{headers.x-github-delivery}}` drops any later request with the same delivery
+  ID, even when its body differs.
+- **Coalesce key:** a fixed window that opens at the first request for a key and does not extend.
+  When it closes, exactly one run starts and it uses the **latest** request's payload. The run is
+  labelled with the first request's delivery. Requests for different keys run independently.
+- **Filters on JSON booleans** compare as strings: `equals "false"` matches `false`.
+- **The payload is not visible to the run** unless the prompt uses the same `{{…}}` templates.
+  T3 wraps each substituted value in `<webhook-data-…>` tags and adds a note telling the agent the
+  tagged text is untrusted.
+- **Updating `schedule`** replaces the whole schedule: leaving out `signature` removes signature
+  checking. Always resend the full schedule.
+- **Every run gets its own worktree and `t3/<slug>` branch** in the host project, and T3 does not
+  remove them afterwards.
+- **Model:** runs use the project's default model; a scheduled task has no model setting.
+- **T3 Connect** is enabled on the dev box; creation returned a `relay.t3.codes` URL.
+
+## D8 — Keep repo + PR coalescing with a 120-second window (2026-11-26)
+
+**Decision:** The real task coalesces on `{{body.repository.full_name}}#{{body.pull_request.number}}`
+with a 120-second window, as planned.
+**Why:** D7 shows coalescing runs on the latest payload, so a burst of pushes becomes one Review Run
+on the newest commit. The cost is that every Review Run starts about two minutes after the first
+event for that PR. A push that lands after the window closes starts its own Review Run, and the
+older one ends as a Superseded Review Run.
+
+## D9 — Pass only GitHub-constrained fields into the prompt (2026-11-26)
+
+**Decision:** The task prompt templates in only the repository full name, PR number, head SHA,
+base SHA, action and delivery ID. It never templates the PR title, body, branch names or any other
+free text. The Coordinator builds the PR URL from the repository and number and reads anything else
+it needs from GitHub.
+**Why:** D7 shows the prompt is the only way the payload reaches the run. These fields have formats
+GitHub controls, so they cannot carry instructions; free-text fields can.
