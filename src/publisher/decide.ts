@@ -1,4 +1,4 @@
-import { containsReviewMarker } from "./render";
+import { isAlreadyReviewed } from "./render";
 
 export interface ReviewDecisionInput {
   headSha: string;
@@ -11,7 +11,7 @@ export type ReviewDecision =
   | { action: "skip"; reason: "already-reviewed" | "superseded" };
 
 export function decideReview(input: ReviewDecisionInput): ReviewDecision {
-  if (input.existingReviewBodies.some((body) => containsReviewMarker(body, input.headSha))) {
+  if (isAlreadyReviewed(input.existingReviewBodies, input.headSha)) {
     return { action: "skip", reason: "already-reviewed" };
   }
 

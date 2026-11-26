@@ -20,8 +20,9 @@ export function reviewMarker(sha: string): string {
   return `<!-- t3-review-agent sha=${sha} -->`;
 }
 
-export function containsReviewMarker(body: string, sha: string): boolean {
-  return body.includes(reviewMarker(sha));
+export function isAlreadyReviewed(bodies: string[], sha: string): boolean {
+  const marker = reviewMarker(sha);
+  return bodies.some((body) => body.trimEnd().endsWith(marker));
 }
 
 function escapeUntrusted(value: string): string {
