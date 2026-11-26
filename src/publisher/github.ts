@@ -38,21 +38,6 @@ async function githubFailure(response: Response): Promise<Error> {
   return new Error(`GitHub API request failed with status ${response.status}: ${message}`);
 }
 
-function nextPageUrl(linkHeader: string | null): string | null {
-  if (linkHeader === null) {
-    return null;
-  }
-
-  for (const part of linkHeader.split(",")) {
-    const match = /<([^>]+)>\s*;\s*rel="?([^";]+)"?/.exec(part.trim());
-    if (match !== null && match[1] !== undefined && match[2] === "next") {
-      return match[1];
-    }
-  }
-
-  return null;
-}
-
 function reviewsUrl(target: GitHubTarget): string {
   return `${apiBase}/repos/${target.owner}/${target.repo}/pulls/${target.pr}/reviews`;
 }
@@ -63,11 +48,10 @@ function pullUrl(target: GitHubTarget): string {
 
 export async function listReviewBodies(target: GitHubTarget): Promise<string[]> {
   const bodies: string[] = [];
-  const seen = new Set<string>();
-  let url: string | null = `${reviewsUrl(target)}?per_page=100`;
+  let page = 1;
 
-  while (url !== null && !seen.has(url)) {
-    seen.add(url);
+  while (true) {
+    const url = `${reviewsUrl(target)}?per_page=100&page=${page}`;
     const response = await fetch(url, {
       method: "GET",
       headers: requestHeaders(target.token),
@@ -90,7 +74,11 @@ export async function listReviewBodies(target: GitHubTarget): Promise<string[]> 
       }
     }
 
-    url = nextPageUrl(response.headers.get("link"));
+    if (data.length < 100) {
+      break;
+    }
+
+    page += 1;
   }
 
   return bodies;
