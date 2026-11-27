@@ -83,6 +83,10 @@ are finished (`.t3-review-run-finished` present) or older than the stale limit. 
 current worktree are never removed. Exit code 2 means bad arguments; exit code 1 means listing worktrees
 failed.
 
+With `--apply`, each removed entry reports `leftoverDirectory: true` when Git unregistered the
+worktree but another process still held its directory open, leaving an empty directory behind.
+Entries in `failed` are still registered and are tried again by the next sweep.
+
 ## Status
 
 Publisher and review pipeline implemented; the bot account and production rollout are in progress.

@@ -138,7 +138,12 @@ async function run(): Promise<number> {
     return 0;
   }
 
-  const removed: Array<{ path: string; branch: string | null; reason: string }> = [];
+  const removed: Array<{
+    path: string;
+    branch: string | null;
+    reason: string;
+    leftoverDirectory: boolean;
+  }> = [];
   const failed: Array<{ path: string; branch: string | null; error: string }> = [];
 
   for (const entry of plan.remove) {
@@ -147,14 +152,28 @@ async function run(): Promise<number> {
       ["worktree", "remove", "--force", entry.path],
       { cwd: process.cwd(), encoding: "utf8" },
     );
+    let leftoverDirectory = false;
     if (removeResult.status !== 0) {
-      const stderr = (removeResult.stderr ?? "").trim();
-      failed.push({
-        path: entry.path,
-        branch: entry.branch,
-        error: stderr.length > 0 ? stderr : "worktree remove failed",
+      spawnSync("git", ["worktree", "prune"], { cwd: process.cwd(), encoding: "utf8" });
+      const relist = spawnSync("git", ["worktree", "list", "--porcelain"], {
+        cwd: process.cwd(),
+        encoding: "utf8",
       });
-      continue;
+      const stillRegistered =
+        relist.status !== 0 ||
+        parseWorktreeList(relist.stdout ?? "").some(
+          (worktree) => normalizePath(worktree.path) === normalizePath(entry.path),
+        );
+      if (stillRegistered) {
+        const stderr = (removeResult.stderr ?? "").trim();
+        failed.push({
+          path: entry.path,
+          branch: entry.branch,
+          error: stderr.length > 0 ? stderr : "worktree remove failed",
+        });
+        continue;
+      }
+      leftoverDirectory = true;
     }
     if (entry.branch !== null && entry.branch.startsWith("t3/")) {
       spawnSync("git", ["branch", "-D", entry.branch], {
@@ -162,7 +181,12 @@ async function run(): Promise<number> {
         encoding: "utf8",
       });
     }
-    removed.push({ path: entry.path, branch: entry.branch, reason: entry.reason });
+    removed.push({
+      path: entry.path,
+      branch: entry.branch,
+      reason: entry.reason,
+      leftoverDirectory,
+    });
   }
 
   spawnSync("git", ["worktree", "prune"], {
