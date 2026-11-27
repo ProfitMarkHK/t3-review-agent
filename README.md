@@ -44,7 +44,7 @@ bun run publish-review --findings examples/findings.sample.json --repo owner/nam
 | `--sha <sha>` | Full 40-character lowercase head SHA the findings were produced for. |
 | `--token-file <path>` | GitHub token file. |
 | `--dry-run` | Print the rendered review body to stdout without reading the token or calling GitHub. |
-| `--check` | Read GitHub and report whether a review would be posted, without posting. Cannot be combined with `--dry-run`. |
+| `--check` | Read GitHub and report whether the head SHA is already reviewed or superseded, without posting. Ignores `--findings`, so it does not check the review body. Cannot be combined with `--dry-run`. |
 
 The token is read from `--token-file` when given. Otherwise it is read from
 `%LOCALAPPDATA%\t3-review-agent\publisher.token`, then

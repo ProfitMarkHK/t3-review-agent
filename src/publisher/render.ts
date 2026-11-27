@@ -44,7 +44,7 @@ function fencedText(label: string, value: string): string[] {
 
 function inlineText(value: string): string {
   return value
-    .replace(/\r\n|\r|\n/g, " ")
+    .replace(/[\u0000-\u001F\u007F\u0085\u2028\u2029]+/g, " ")
     .replace(/[\u0021-\u002F\u003A-\u0040\u005B-\u0060\u007B-\u007E]/g, (char) => `\\${char}`);
 }
 
