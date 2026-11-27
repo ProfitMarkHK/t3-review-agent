@@ -29,11 +29,11 @@ publisher that posts one Published Review, and renders a Findings Report in the 
 Render one Reviewer's task text:
 
 ```bash
-bun run reviewer-task --scope correctness --repo owner/name --pr 42 --head <40-hex> --base <40-hex>
+bun run reviewer-task --scope correctness --repo owner/name --pr 42 --head <40-hex> --base <40-hex> --checkout <absolute path>
 ```
 
 It prints the task to stdout. `--scope` must be a known scope id; `correctness` is the only one for
-now.
+now. `--checkout <absolute path>` is the detached checkout the Reviewer reads.
 
 Render a Findings Report:
 
