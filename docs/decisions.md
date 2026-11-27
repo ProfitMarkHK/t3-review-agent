@@ -100,3 +100,33 @@ GitHub controls, so they cannot carry instructions; free-text fields can.
 account exists.
 **Why:** MindbodyMCP is public and has live PRs, including Dependabot ones. Without the filter, any
 push to them during the build would start Review Runs and post reviews under a personal account.
+
+## D11 — Webhook secret stored by T3 without a secret reference (2026-11-27)
+
+**Decision:** The webhook secret was generated locally, set on the GitHub webhook through the API,
+and given to the webhook task through the schedule's `secret` field instead of a `secretRef`.
+**Why:** `request_secret` hands out a `secretRef` only from an interactive card, and a pasted value
+comes back as a file. The secret still never reaches a repository file or a commit, and T3 stores
+it. To rotate it, open a `request_secret` card, save the task with the new `secretRef` (resending
+the whole schedule, see D7), then update the GitHub webhook.
+
+## D12 — The Coordinator owns the Reviewer checkout (2026-11-27, from #4)
+
+**Decision:** The Coordinator fetches the PR head into the routed local checkout and adds a detached
+worktree at the head SHA inside its run directory. It dispatches each Reviewer with no target
+project and shared isolation, and the Reviewer reads that path and checks `HEAD` before reviewing.
+The Coordinator removes exactly the worktree it created.
+**Why:** The first live run showed that `delegate_task` refuses `target.projectId` for a local task
+("A local task runs in this thread's project"), with or without an `environmentId`. The plan's
+Reviewer worktree in the target project is not possible. Owning the checkout also means cleanup
+never has to trust paths read back from other threads.
+
+## D13 — What the first live run showed (2026-11-27, from #4)
+
+- **T3 Connect** was already enabled; the task's webhook URL is on `relay.t3.codes`.
+- **Runtime mode:** the Coordinator ran in `full-access` mode on the project default model
+  (`claudeAgent`, `claude-opus-5-5`, effort high).
+- **Coordinator worktree:** each run gets a worktree and a branch named after the run, such as
+  `t3/review-pr-89-synchronize`, and T3 leaves them behind (tracked in #8).
+- **Development token:** until the bot account exists (#2), the publisher token file holds the
+  repository owner's own `gh` token, so Published Reviews appear under that account.
