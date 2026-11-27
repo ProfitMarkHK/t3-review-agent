@@ -1,3 +1,5 @@
 node_modules/
 .env.local
 *.token
+.t3-review-run
+.t3-review-run-finished

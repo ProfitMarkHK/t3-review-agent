@@ -48,6 +48,41 @@ to `--out` and its absolute path is printed.
 
 Both commands exit 2 for invalid arguments.
 
+## Cleaning up Review Run worktrees
+
+Each Review Run works in its own git worktree on a `t3/` branch. Worktrees are not removed automatically
+when a thread is archived or settled. Two commands handle cleanup:
+
+Dry run (default) lists what would be removed without touching anything:
+
+```sh
+bun run sweep-runs
+```
+
+Apply the plan:
+
+```sh
+bun run sweep-runs --apply
+```
+
+Override the staleness threshold (default 6 hours, maximum 168):
+
+```sh
+bun run sweep-runs --apply --stale-hours 12
+```
+
+Mark the current Review Run's worktree (run by the Coordinator):
+
+```sh
+bun run mark-run --started
+bun run mark-run --finished
+```
+
+Only worktrees on `t3/` branches carrying the `.t3-review-run` marker are removed, and only when they
+are finished (`.t3-review-run-finished` present) or older than the stale limit. The main checkout and the
+current worktree are never removed. Exit code 2 means bad arguments; exit code 1 means listing worktrees
+failed.
+
 ## Status
 
 Publisher and review pipeline implemented; the bot account and production rollout are in progress.
