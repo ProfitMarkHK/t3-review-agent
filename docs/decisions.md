@@ -163,3 +163,16 @@ empty directory open. Git had already unregistered it, so the sweep now counts t
 deletes the branch and reports `leftoverDirectory`. A live run after the change wrote both markers.
 **Gap:** Reviewer checkouts in the target repository are removed by the Coordinator in section 11.
 If a Coordinator dies before then, they are left behind; this is tracked separately.
+
+## D16 — Stale Reviewer checkouts in target repositories (2026-11-27, from #9)
+
+**Decision:** `sweep-runs --target <checkout>` also removes Reviewer checkouts that a dead
+Coordinator left in a routed target repository. It touches only detached worktrees named
+`checkout-<scope>` under `<OS temp dir>/t3-review-agent/` whose Git admin directory has not changed
+for longer than the stale limit. The Coordinator passes each routed checkout from the routing
+table, never from webhook data.
+**Why:** The admin directory's modification time moves whenever Git touches that worktree, so a
+checkout a Reviewer is still reading looks fresh and is kept. That is the safe direction for the
+error to fall.
+**Evidence:** Against `E:\MindbodyMCP`, a checkout backdated by 7 hours was removed. A fresh one in
+the same run directory, and every other worktree of that repository, was kept.
