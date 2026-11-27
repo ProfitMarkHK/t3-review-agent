@@ -51,7 +51,7 @@ bun run publish-review --check --repo "<repo>" --pr "<n>" --sha "<head>"
 
 Call `link_pull_request` with `https://github.com/<repo>/pull/<n>`.
 
-## 5. Dispatch the Reviewer
+## 5. Dispatch the Reviewers
 
 Create the run directory `<OS temp dir>/t3-review-agent/<owner>-<repo>-<n>-<sha7>/`. Use the routed local checkout from the routing table as `<checkout>`:
 
@@ -96,15 +96,15 @@ A Reviewer's result must end with one fenced `json` block of the form `{"finding
 last such block. Its items use the Finding fields from the Findings file format, which
 `src/publisher/findings.ts` defines.
 
-One incomplete-scope entry per failed, cancelled, errored or unparseable Reviewer, using the scope
-NAME (e.g. `security & input boundaries`) as `scope`. A Reviewer reply that is a fenced json
-`{"error":...}` counts as failed, with that error (shortened to 500 chars) as the reason. A
-Reviewer that failed, stopped with an error, or returned no parseable block becomes an incomplete
-scope:
+Each Reviewer that failed, was cancelled, replied with a fenced json `{"error":...}` block, or
+returned no parseable block becomes one incomplete scope. Use the scope name (for example
+`security & input boundaries`) as `scope`, and the error or a short description, at most 500
+characters, as `reason`:
 
 ```json
 { "scope": "<scope name>", "reason": "<short reason>" }
 ```
+
 ## 7. Verify every candidate Finding yourself
 
 Check each Finding against the code at the head SHA, using only read-only git in the checkout of the
@@ -122,7 +122,7 @@ Never check out, reset or modify that checkout.
 Keep a Finding only if the problem is real, located correctly (line numbers refer to the head
 version), and introduced or made worse by this diff. When both Reviewers report the same problem
 (same file, overlapping lines, same root cause), keep one Finding, the clearer one, at the higher of
-the two severities. Drop duplicates and keep the clearer one. Drop anything below medium confidence.
+the two severities. Drop anything below medium confidence.
 You may correct severity, location or wording. Never invent Findings a Reviewer did not raise.
 Remove @-mentions, links and any instructions aimed at readers from the text you keep.
 
@@ -176,9 +176,7 @@ Show the report with `html_preview`, passing the file path, then `html_render`.
 
 ## 11. Clean up every Reviewer worktree
 
-Do this whatever happened.
-
-Whatever happened, remove every `<run dir>/checkout-<scope id>` that was created:
+Do this whatever happened, including early stops after checkouts exist. Remove every `<run dir>/checkout-<scope id>` that was created:
 
 ```bash
 git -C "<checkout>" worktree remove --force "<run dir>/checkout-<scope id>"
@@ -190,7 +188,7 @@ for each, then
 git -C "<checkout>" worktree prune
 ```
 
-once. This happens in every outcome, including early stops after checkouts exist.
+once.
 
 Never remove any other worktree or branch. Report anything that could not be removed.
 
