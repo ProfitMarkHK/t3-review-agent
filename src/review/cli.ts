@@ -8,13 +8,14 @@ interface ParsedOptions {
   pr: number;
   headSha: string;
   baseSha: string;
+  checkoutPath: string;
 }
 
 type ParseResult =
   | { ok: true; value: ParsedOptions }
   | { ok: false; errors: string[] };
 
-const valueFlags = new Set(["--scope", "--repo", "--pr", "--head", "--base"]);
+const valueFlags = new Set(["--scope", "--repo", "--pr", "--head", "--base", "--checkout"]);
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -105,6 +106,23 @@ function parseArguments(args: string[]): ParseResult {
     errors.push("--base must be a 40-character lowercase hex SHA");
   }
 
+  const checkoutValue = values.get("--checkout");
+  let checkoutPath: string | null = null;
+  if (checkoutValue === undefined) {
+    errors.push("--checkout is required");
+  } else {
+    const forbidden = /["`$%!^&|;<>\n\r\t\0-\x1f\x7f]/;
+    if (checkoutValue.length > 400) {
+      errors.push("--checkout must be at most 400 characters");
+    } else if (!/^(?:[A-Za-z]:[\\/]|\/)/.test(checkoutValue)) {
+      errors.push("--checkout must be an absolute path");
+    } else if (forbidden.test(checkoutValue)) {
+      errors.push("--checkout contains a forbidden character");
+    } else {
+      checkoutPath = checkoutValue;
+    }
+  }
+
   if (
     errors.length > 0 ||
     scopeId === undefined ||
@@ -112,14 +130,15 @@ function parseArguments(args: string[]): ParseResult {
     repo === null ||
     pr === null ||
     headSha === undefined ||
-    baseSha === undefined
+    baseSha === undefined ||
+    checkoutPath === null
   ) {
     return { ok: false, errors };
   }
 
   return {
     ok: true,
-    value: { scopeId, owner, repo, pr, headSha, baseSha },
+    value: { scopeId, owner, repo, pr, headSha, baseSha, checkoutPath },
   };
 }
 
@@ -146,6 +165,7 @@ function run(): number {
       pr: options.pr,
       headSha: options.headSha,
       baseSha: options.baseSha,
+      checkoutPath: options.checkoutPath,
     }),
   );
   return 0;
