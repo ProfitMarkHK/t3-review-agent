@@ -50,54 +50,58 @@ async function run(): Promise<number> {
   }
 
   const options = parsed.value;
-  const findingsPath = options.findingsPath;
-  if (findingsPath === undefined) {
-    console.error("--findings is required");
-    return 2;
-  }
+  let body: string | null = null;
 
-  let raw: string;
-  try {
-    raw = await readFile(findingsPath, "utf8");
-  } catch (error) {
-    console.error(`cannot read findings file ${findingsPath}: ${errorMessage(error)}`);
-    return 2;
-  }
-
-  let input: unknown;
-  try {
-    input = JSON.parse(raw);
-  } catch (error) {
-    console.error(`findings file ${findingsPath} is not valid JSON: ${errorMessage(error)}`);
-    return 2;
-  }
-
-  const findings = parseFindingsFile(input);
-  if (!findings.ok) {
-    for (const error of findings.errors) {
-      console.error(error);
+  if (!options.check) {
+    const findingsPath = options.findingsPath;
+    if (findingsPath === undefined) {
+      console.error("--findings is required");
+      return 2;
     }
-    return 2;
-  }
 
-  const rendered = renderReviewBody({
-    sha: options.sha,
-    owner: options.owner,
-    repo: options.repo,
-    findings: findings.value.findings,
-    incompleteScopes: findings.value.incompleteScopes,
-  });
+    let raw: string;
+    try {
+      raw = await readFile(findingsPath, "utf8");
+    } catch (error) {
+      console.error(`cannot read findings file ${findingsPath}: ${errorMessage(error)}`);
+      return 2;
+    }
 
-  if (!rendered.ok) {
-    console.error(rendered.error);
-    return 1;
-  }
+    let input: unknown;
+    try {
+      input = JSON.parse(raw);
+    } catch (error) {
+      console.error(`findings file ${findingsPath} is not valid JSON: ${errorMessage(error)}`);
+      return 2;
+    }
 
-  const body = rendered.body;
+    const findings = parseFindingsFile(input);
+    if (!findings.ok) {
+      for (const error of findings.errors) {
+        console.error(error);
+      }
+      return 2;
+    }
 
-  if (options.dryRun) {
-    console.log(body);
-    return 0;
+    const rendered = renderReviewBody({
+      sha: options.sha,
+      owner: options.owner,
+      repo: options.repo,
+      findings: findings.value.findings,
+      incompleteScopes: findings.value.incompleteScopes,
+    });
+
+    if (!rendered.ok) {
+      console.error(rendered.error);
+      return 1;
+    }
+
+    body = rendered.body;
+
+    if (options.dryRun) {
+      console.log(body);
+      return 0;
+    }
   }
 
   const token = await readToken(options.tokenPath);
@@ -125,6 +129,16 @@ async function run(): Promise<number> {
   if (decision.action === "skip") {
     console.log(JSON.stringify({ outcome: "skipped", reason: decision.reason }));
     return 0;
+  }
+
+  if (options.check) {
+    console.log(JSON.stringify({ outcome: "would-post" }));
+    return 0;
+  }
+
+  if (body === null) {
+    console.error("no review body was rendered");
+    return 1;
   }
 
   const review = await postReview(target, options.sha, body);

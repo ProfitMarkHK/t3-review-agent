@@ -14,6 +14,7 @@ export interface PublisherOptions {
   sha: string;
   tokenPath: string;
   dryRun: boolean;
+  check: boolean;
 }
 
 export type ParseArgumentsResult =
@@ -41,6 +42,7 @@ export function parseArguments(args: string[], env: PublisherEnvironment): Parse
   const errors: string[] = [];
   const values = new Map<string, string>();
   let dryRun = false;
+  let check = false;
 
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
@@ -53,6 +55,14 @@ export function parseArguments(args: string[], env: PublisherEnvironment): Parse
         errors.push("--dry-run was given more than once");
       }
       dryRun = true;
+      continue;
+    }
+
+    if (arg === "--check") {
+      if (check) {
+        errors.push("--check was given more than once");
+      }
+      check = true;
       continue;
     }
 
@@ -82,8 +92,12 @@ export function parseArguments(args: string[], env: PublisherEnvironment): Parse
     index += 1;
   }
 
+  if (dryRun && check) {
+    errors.push("--check and --dry-run cannot be used together");
+  }
+
   const findingsPath = values.get("--findings");
-  if (findingsPath === undefined) {
+  if (!check && findingsPath === undefined) {
     errors.push("--findings is required");
   }
 
@@ -138,9 +152,10 @@ export function parseArguments(args: string[], env: PublisherEnvironment): Parse
     sha,
     tokenPath: tokenFile ?? defaultTokenPath(env),
     dryRun,
+    check,
   };
 
-  if (findingsPath !== undefined) {
+  if (!check && findingsPath !== undefined) {
     options.findingsPath = findingsPath;
   }
 

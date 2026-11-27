@@ -20,13 +20,13 @@ publisher that posts one Published Review, and renders a Findings Report in the 
 | Host | T3 Code on the always-on dev box; one new thread per Review Run |
 | Reviewers | Two, via `delegate_task` into the target project's worktrees: correctness & architecture, security & input boundaries |
 | Findings | Only problems the diff introduces; Blocker / Important / Minor; verified by the Coordinator |
-| Publisher | PowerShell + `gh api`, bot user with a fine-grained PAT; `COMMENT` reviews only |
+| Publisher | TypeScript on Bun, GitHub REST via `fetch`; bot user with a fine-grained PAT; `COMMENT` reviews only |
 | Idempotency | Hidden head-SHA marker in each Published Review; skip if the PR head has moved |
 | Output | One Published Review on GitHub + a Findings Report rendered in the thread |
 
 ## Status
 
-Design settled. Nothing implemented yet.
+Publisher implemented; the review pipeline is in progress.
 
 ## Publishing a review by hand
 
@@ -38,12 +38,13 @@ bun run publish-review --findings examples/findings.sample.json --repo owner/nam
 
 | Flag | Meaning |
 | --- | --- |
-| `--findings <file>` | Findings file to publish. `examples/findings.sample.json` shows the format. |
+| `--findings <file>` | Findings file to publish. `examples/findings.sample.json` shows the format. Not needed with `--check`. |
 | `--repo <owner/name>` | Repository that owns the pull request. |
 | `--pr <number>` | Pull request number. |
 | `--sha <sha>` | Full 40-character lowercase head SHA the findings were produced for. |
 | `--token-file <path>` | GitHub token file. |
 | `--dry-run` | Print the rendered review body to stdout without reading the token or calling GitHub. |
+| `--check` | Read GitHub and report whether a review would be posted, without posting. Cannot be combined with `--dry-run`. |
 
 The token is read from `--token-file` when given. Otherwise it is read from
 `%LOCALAPPDATA%\t3-review-agent\publisher.token`, then
@@ -57,7 +58,10 @@ Without `--dry-run`, the publisher writes exactly one JSON line to stdout:
 {"outcome":"posted","reviewId":123,"url":"https://github.com/owner/name/pull/42#pullrequestreview-123"}
 {"outcome":"skipped","reason":"already-reviewed"}
 {"outcome":"skipped","reason":"superseded"}
+{"outcome":"would-post"}
 ```
+
+`would-post` is printed only with `--check`.
 
 Exit codes: `0` when a review was posted or skipped, `2` for invalid arguments or an invalid
 findings file, and `1` for any other failure.
