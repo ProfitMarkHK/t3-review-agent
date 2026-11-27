@@ -145,3 +145,21 @@ never has to trust paths read back from other threads.
 - GitHub's own "Redeliver" needs a token with `admin:repo_hook`, which the development `gh` token
   lacks. The replay was therefore tested by re-sending the same delivery ID with a valid signature,
   which is what a redelivery is.
+
+## D15 — Each Review Run sweeps the worktrees of earlier ones (2026-11-27, from #8)
+
+**Decision:** The Coordinator writes `.t3-review-run` in its own worktree when it starts and
+`.t3-review-run-finished` as its last command on every path. At start it runs
+`bun run sweep-runs --apply`, which removes other worktrees of this repository on `t3/` branches
+that carry the start marker and are either finished or more than 6 hours old, then deletes their
+branches. A run's own worktree is therefore removed by the next Review Run.
+**Why:** Archiving or settling a finished Review Run thread does not remove its worktree (tested on
+two threads). A run cannot remove its own worktree while it is still running in it. Markers make
+the sweep safe: it never touches a worktree without the start marker (delegates, issue branches),
+the main checkout, its own worktree, or a marked run that is neither finished nor stale.
+**Evidence:** The first `--apply` removed five finished Review Run worktrees and their branches. The
+sixth, which had finished minutes earlier, could not be deleted because a process still held its
+empty directory open. Git had already unregistered it, so the sweep now counts that as removed,
+deletes the branch and reports `leftoverDirectory`. A live run after the change wrote both markers.
+**Gap:** Reviewer checkouts in the target repository are removed by the Coordinator in section 11.
+If a Coordinator dies before then, they are left behind; this is tracked separately.
