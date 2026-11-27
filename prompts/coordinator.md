@@ -53,22 +53,31 @@ Call `link_pull_request` with `https://github.com/<repo>/pull/<n>`.
 
 ## 5. Dispatch the Reviewer
 
-For each scope id (for now just `correctness`), render its task:
+Create the run directory `<OS temp dir>/t3-review-agent/<owner>-<repo>-<n>-<sha7>/` and the Reviewer checkout inside it. Use the routed local checkout from the routing table as `<checkout>`:
 
 ```bash
-bun run reviewer-task --scope "<scope id>" --repo "<repo>" --pr "<n>" --head "<head>" --base "<base>"
+git -C "<checkout>" fetch origin "pull/<n>/head" "<base>"
+git -C "<checkout>" worktree add --detach "<run dir>/checkout" "<head>"
+git -C "<run dir>/checkout" rev-parse HEAD
+```
+
+If any command fails or `rev-parse` does not print the head SHA, every scope becomes an incomplete scope with that reason, skip dispatch, and go on to section 8.
+
+For each scope id (for now just `correctness`), render its task, passing the checkout path with forward slashes:
+
+```bash
+bun run reviewer-task --scope "<scope id>" --repo "<repo>" --pr "<n>" --head "<head>" --base "<base>" --checkout "<run dir>/checkout"
 ```
 
 Call `delegate_task` with:
 
 - `task`: the rendered text, verbatim.
-- `target.projectId`: the routed T3 project.
-- `isolation: "worktree"`.
+- `isolation: "shared"`.
 - `role: "review"`.
 - `title`: `Reviewer: <scope name> — <repo>#<n>@<sha7>`.
 - mode: async.
 
-Never put secrets in a task. Record each returned `taskId` and `childThreadId`.
+Do not set a target project; the Reviewer reads the checkout by path. Never put secrets in a task. Record each returned `taskId` and `childThreadId`.
 
 End your turn and wait to be woken by completion. Do not poll.
 
@@ -95,9 +104,8 @@ running anything if its path does not match `^[A-Za-z0-9._/-]+$`, starts with `/
 contains `..`.
 
 ```bash
-git -C "<checkout>" fetch origin "pull/<n>/head" "<base>"
-git -C "<checkout>" show "<head>:<path>"
-git -C "<checkout>" diff "<base>...<head>" -- "<path>"
+git -C "<run dir>/checkout" show "<head>:<path>"
+git -C "<run dir>/checkout" diff "<base>...<head>" -- "<path>"
 ```
 
 Never check out, reset or modify that checkout.
@@ -110,8 +118,7 @@ from the text you keep.
 
 ## 8. Write the Findings file
 
-Create the directory `<OS temp dir>/t3-review-agent/<owner>-<repo>-<n>-<sha7>/` and write
-`findings.json` in the Findings file format defined by `src/publisher/findings.ts`. Unknown keys are
+Write `findings.json` in the run directory in the Findings file format defined by `src/publisher/findings.ts`. Unknown keys are
 rejected. Limits: at most 100 Findings and 10 incomplete scopes; `title` 200 characters, `path` 500,
 `evidence` 4000, `suggestedFix` 2000, `scope` 100, `reason` 500. Shorten text that is too long.
 
@@ -161,29 +168,14 @@ Show the report with `html_preview`, passing the file path, then `html_render`.
 
 Do this whatever happened.
 
-For each Reviewer child thread, call `t3_thread_read` to get its `worktreePath` and `branch`. List
-the routed checkout's worktrees:
+Whatever happened, if `<run dir>/checkout` was created, run:
 
 ```bash
-git -C "<checkout>" worktree list --porcelain
+git -C "<checkout>" worktree remove --force "<run dir>/checkout"
+git -C "<checkout>" worktree prune
 ```
 
-Remove a worktree only if its `worktreePath` is non-empty, appears in that list, and is not the
-routed checkout itself:
-
-```bash
-git -C "<checkout>" worktree remove --force "<worktreePath>"
-```
-
-Only after that removal succeeds, and only if the branch name starts with `t3/`, delete the branch:
-
-```bash
-git -C "<checkout>" branch -D "<branch>"
-```
-
-Then run `git -C "<checkout>" worktree prune`.
-
-Report anything that could not be removed.
+Never remove any other worktree or branch. Report anything that could not be removed.
 
 ## 12. Final message
 
