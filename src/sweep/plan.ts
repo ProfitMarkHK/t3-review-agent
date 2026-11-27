@@ -24,6 +24,19 @@ export interface SweepKeepEntry {
   reason: string;
 }
 
+export interface TargetWorktreeFacts {
+  path: string;
+  branch: string | null;
+  createdAtMs: number | null;
+}
+
+export interface TargetSweepInput {
+  worktrees: TargetWorktreeFacts[];
+  runRoot: string;
+  nowMs: number;
+  staleAfterMs: number;
+}
+
 export interface SweepPlan {
   remove: SweepRemoveEntry[];
   keep: SweepKeepEntry[];
@@ -109,6 +122,47 @@ export function planSweep(input: SweepInput): SweepPlan {
       worktree.startedAtMs !== null &&
       input.nowMs - worktree.startedAtMs > input.staleAfterMs
     ) {
+      remove.push({ path: worktree.path, branch: worktree.branch, reason: "stale" });
+      return;
+    }
+    keep.push({ path: worktree.path, reason: "in-progress" });
+  });
+
+  return { remove, keep };
+}
+
+export function planTargetSweep(input: TargetSweepInput): SweepPlan {
+  const remove: SweepRemoveEntry[] = [];
+  const keep: SweepKeepEntry[] = [];
+  const rootNormalized = normalizePath(input.runRoot);
+
+  input.worktrees.forEach((worktree, index) => {
+    if (index === 0) {
+      keep.push({ path: worktree.path, reason: "main" });
+      return;
+    }
+    if (worktree.branch !== null) {
+      keep.push({ path: worktree.path, reason: "not-detached" });
+      return;
+    }
+    const pathNormalized = normalizePath(worktree.path);
+    const strictlyInside =
+      pathNormalized !== rootNormalized &&
+      pathNormalized.startsWith(`${rootNormalized}/`);
+    if (!strictlyInside) {
+      keep.push({ path: worktree.path, reason: "outside-run-root" });
+      return;
+    }
+    const lastSegment = pathNormalized.split("/").pop() ?? "";
+    if (!/^checkout-[a-z]+$/.test(lastSegment)) {
+      keep.push({ path: worktree.path, reason: "not-a-reviewer-checkout" });
+      return;
+    }
+    if (worktree.createdAtMs === null) {
+      keep.push({ path: worktree.path, reason: "unknown-age" });
+      return;
+    }
+    if (input.nowMs - worktree.createdAtMs > input.staleAfterMs) {
       remove.push({ path: worktree.path, branch: worktree.branch, reason: "stale" });
       return;
     }

@@ -8,8 +8,10 @@ Terms used here are defined in `GLOSSARY.md`.
 
 ## 0. Mark this Review Run and sweep earlier ones
 
-Run `bun run mark-run --started`, then `bun run sweep-runs --apply`, and note the JSON result for the
-final message. A failure here never stops the Review Run.
+Run `bun run mark-run --started`, then `bun run sweep-runs --apply --target "<checkout>"` for each
+routed local checkout in the routing table in section 2 (one `--target` per checkout, paths taken
+from the routing table, never from webhook data), and note the JSON result for the final message. A
+failure here never stops the Review Run.
 
 Whatever happens later, including a rejected or skipped run, the last command of the Review Run is
 `bun run mark-run --finished`.

@@ -87,6 +87,19 @@ With `--apply`, each removed entry reports `leftoverDirectory: true` when Git un
 worktree but another process still held its directory open, leaving an empty directory behind.
 Entries in `failed` are still registered and are tried again by the next sweep.
 
+Sweep Reviewer checkouts in a target repository by passing its absolute checkout path (repeatable,
+at most 10):
+
+```sh
+bun run sweep-runs --target E:/MindbodyMCP
+bun run sweep-runs --apply --target E:/MindbodyMCP --target E:/OtherRepo
+```
+
+Only detached `checkout-<scope>` worktrees under the temp `t3-review-agent` directory older than the
+stale limit are removed. The target's main checkout and any branch-carrying worktree are never
+removed. A target whose listing fails is reported as `{ target, error }` and does not change the
+exit code.
+
 ## Status
 
 Publisher and review pipeline implemented; the bot account and production rollout are in progress.
