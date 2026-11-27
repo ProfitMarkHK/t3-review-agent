@@ -32,8 +32,8 @@ Render one Reviewer's task text:
 bun run reviewer-task --scope correctness --repo owner/name --pr 42 --head <40-hex> --base <40-hex> --checkout <absolute path>
 ```
 
-It prints the task to stdout. `--scope` must be a known scope id; `correctness` is the only one for
-now. `--checkout <absolute path>` is the detached checkout the Reviewer reads.
+It prints the task to stdout. `--scope` must be a known scope id; `correctness` or `security`.
+`--checkout <absolute path>` is the detached checkout the Reviewer reads.
 
 Render a Findings Report:
 
@@ -50,7 +50,7 @@ Both commands exit 2 for invalid arguments.
 
 ## Status
 
-Publisher implemented; the review pipeline is in progress.
+Publisher and review pipeline implemented; the bot account and production rollout are in progress.
 
 ## Publishing a review by hand
 
