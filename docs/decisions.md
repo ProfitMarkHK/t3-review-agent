@@ -130,3 +130,18 @@ never has to trust paths read back from other threads.
   `t3/review-pr-89-synchronize`, and T3 leaves them behind (tracked in #8).
 - **Development token:** until the bot account exists (#2), the publisher token file holds the
   repository owner's own `gh` token, so Published Reviews appear under that account.
+
+## D14 — Dedupe on the real task (2026-11-27, from #6)
+
+**Decision:** The real task uses replay key `{{headers.x-github-delivery}}` and coalesce key
+`{{body.repository.full_name}}#{{body.pull_request.number}}` with a 120-second window.
+**Evidence:**
+- Two pushes to PR 89 twenty seconds apart started one Review Run, on the second commit. A PR
+  opened in the same window (PR 90) started its own Review Run.
+- Re-sending a delivery ID first received after the keys were set started no Review Run.
+- Re-sending a delivery ID first received *before* the keys were set did start one. T3 remembers
+  only deliveries that arrived while a replay key was configured. That run stopped at the early
+  check as already reviewed.
+- GitHub's own "Redeliver" needs a token with `admin:repo_hook`, which the development `gh` token
+  lacks. The replay was therefore tested by re-sending the same delivery ID with a valid signature,
+  which is what a redelivery is.
