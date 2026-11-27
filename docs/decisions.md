@@ -35,7 +35,11 @@ the agreed design record.
 ## D5 — Who implements and who reviews (2026-11-26)
 
 **Decision:** Implementation is delegated to free OpenCode models through the OpenCode V2 provider
-(`opencode/deepseek-v4.1-flash-free` by default). Every piece of work is then rubber-ducked by a
+using only the free `opencode/*` models (never `opencode-go/*`). `opencode/deepseek-v4.1-flash-free`
+was the first choice; it hit its free usage limit mid-task, so work moves between the other free
+models (`opencode/nemotron-3.5-super-vl-free`, `opencode/mimo-v2.6-flash-free`,
+`opencode/big-pickle` and others) as limits are reached. Partial work left by a delegate that hit
+a limit is kept and finished rather than redone. Every piece of work is then rubber-ducked by a
 second free model with fresh context, and checked again by the orchestrating agent before it is
 merged. Work that needs T3's own tools (scheduled tasks, webhook URLs) is done by the
 orchestrating agent, because delegates cannot be relied on to have them.
@@ -88,3 +92,11 @@ free text. The Coordinator builds the PR URL from the repository and number and 
 it needs from GitHub.
 **Why:** D7 shows the prompt is the only way the payload reaches the run. These fields have formats
 GitHub controls, so they cannot carry instructions; free-text fields can.
+
+## D10 — Limit the webhook task to test branches until #7 (2026-11-27)
+
+**Decision:** While #4–#6 are being built, the real webhook task carries one extra filter,
+`body.pull_request.head.ref` starts with `t3-review-test/`. It is removed in #7, once the bot
+account exists.
+**Why:** MindbodyMCP is public and has live PRs, including Dependabot ones. Without the filter, any
+push to them during the build would start Review Runs and post reviews under a personal account.
