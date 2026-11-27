@@ -18,7 +18,7 @@ publisher that posts one Published Review, and renders a Findings Report in the 
 | Target | `ProfitMarkHK/MindbodyMCP`; fork and draft PRs skipped |
 | Trigger | Repo webhook → one T3 webhook task in this project (HMAC, filters, delivery-ID replay dedupe, repo + PR coalesce) |
 | Host | T3 Code on the always-on dev box; one new thread per Review Run |
-| Reviewers | Two, via `delegate_task` into the target project's worktrees: correctness & architecture, security & input boundaries |
+| Reviewers | Two, run in parallel via `delegate_task`, each reading its own detached checkout of the target repository at the head SHA: correctness & architecture, security & input boundaries |
 | Findings | Only problems the diff introduces; Blocker / Important / Minor; verified by the Coordinator |
 | Publisher | TypeScript on Bun, GitHub REST via `fetch`; bot user with a fine-grained PAT; `COMMENT` reviews only |
 | Idempotency | Hidden head-SHA marker in each Published Review; skip if the PR head has moved |
